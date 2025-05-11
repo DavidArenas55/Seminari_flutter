@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:seminari_flutter/components/my_textfield.dart';
 import 'package:seminari_flutter/components/my_button.dart';
 import 'package:seminari_flutter/services/auth_service.dart';
+import 'package:provider/provider.dart';
+import 'package:seminari_flutter/provider/auth_provider.dart';
+
 
 class LoginPage extends StatelessWidget {
   LoginPage({super.key});
@@ -11,41 +14,46 @@ class LoginPage extends StatelessWidget {
   final passwordController = TextEditingController();
 
   void signUserIn(BuildContext context) async {
-    final authService = AuthService();
+  final authService = AuthService();
+  final email = emailController.text;
+  final password = passwordController.text;
 
-    final email = emailController.text;
-    final password = passwordController.text;
+  if (email.isEmpty || password.isEmpty) {
+    _showError(context, 'El email i la contrasenya no poden estar buits.');
+    return;
+  }
 
-    if (email.isEmpty || password.isEmpty) {
-      _showError(context, 'El email i la contrasenya no poden estar buits.');
-      return;
-    }
+  final result = await authService.login(email, password);
 
-    final result = await authService.login(email, password);
-
-    if (result.containsKey('error')) {
-      _showError(context, result['error']);
-    } else {
+  if (result.containsKey('error')) {
+    _showError(context, result['error']);
+  } else {
+    final userId = result['id'];
+    if (userId != null) {
+      Provider.of<AuthProvider>(context, listen: false).setUserId(userId);
       context.go('/');
+    } else {
+      _showError(context, "Error inesperat: usuari nul");
     }
   }
+}
+
 
   void _showError(BuildContext context, String message) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Error'),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('OK'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('OK'),
           ),
+        ],
+      ),
     );
   }
 
